@@ -4,6 +4,21 @@ from math import log
 import numpy as np
 import sys
 
+def get_image_path():
+    try:
+        while True:
+            try:
+                image_path = str(input('Enter the image path: '))
+                image = Image.open(image_path)
+            except (FileNotFoundError, UnidentifiedImageError):
+                print('\033[31mInvalid Image Path, Please Try Again!!\033[m')
+                continue
+            else:
+                break
+    except (KeyboardInterrupt):
+        print('\033[33m\n\nKeyboardInterrupt: Program terminated by the user.\033[m')
+        sys.exit()
+    return image_path, image
 
 def parse_without_color(image):
     width, height = image.size
@@ -29,8 +44,8 @@ def change_extension(file_path, new_extension):
     base = os.path.splitext(os.path.basename(file_path))[0]
     return f"{base}.{new_extension}"
 
-def main(path):
-    image_path, image = path
+def main():
+    image_path, image = get_image_path()
     width, height = image.size
     image_matrix = np.array(image)
     use_default_color = False
@@ -65,3 +80,6 @@ def main(path):
         for row in relief_map:
             file.write(" ".join(row) + '\n')
     print(f"\033[32m\nThe map '{fdf_path}' was created successfully!!\033[m")
+
+if __name__ == '__main__':
+    main()

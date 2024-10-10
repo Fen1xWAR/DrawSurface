@@ -79,41 +79,40 @@ def create_edges(rows, cols):
     for j in range(cols):
         for i in range(rows - 1):
             edges.append((i * cols + j, (i + 1) * cols + j))  # Вертикальные рёбра
-    print(edges)
     return np.array(edges, dtype='uint32')  # Возврат массива рёбер
 
 
 def draw_plane(vertices, colors, edges):
     """Нарисовать 3D плоскость с использованием OpenGL."""
 
+    #Объявляем буферы
     vertex_buffer = glGenBuffers(1)  # Создание буфера для вершин
     color_buffer = glGenBuffers(1)  # Создание буфера для цветов
     edge_buffer = glGenBuffers(1)  # Создание буфера для ребер
 
+
+    #Заполняем буферы
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer)  # Привязка буфера вершин
+    glVertexPointer(3, GL_FLOAT, 0, None)  # Указание формата вершин
     glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)  # Заполнение буфера вершин
+    glEnableClientState(GL_VERTEX_ARRAY)  # Включение состояния массива вершин
 
     glBindBuffer(GL_ARRAY_BUFFER, color_buffer)  # Привязка буфера цветов
+    glColorPointer(3, GL_FLOAT, 0, None)  # Указание формата цветов
     glBufferData(GL_ARRAY_BUFFER, colors.nbytes, colors, GL_STATIC_DRAW)  # Заполнение буфера цветов
+    glEnableClientState(GL_COLOR_ARRAY)  # Включение состояния массива цветов
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, edge_buffer)  # Привязка буфера ребер
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, edges.nbytes, edges, GL_STATIC_DRAW)  # Заполнение буфера ребер
 
-    glEnableClientState(GL_VERTEX_ARRAY)  # Включение состояния массива вершин
-    glEnableClientState(GL_COLOR_ARRAY)  # Включение состояния массива цветов
-
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer)  # Привязка буфера вершин для рендеринга
-    glVertexPointer(3, GL_FLOAT, 0, None)  # Указание формата вершин
-
-    glBindBuffer(GL_ARRAY_BUFFER, color_buffer)  # Привязка буфера цветов для рендеринга
-    glColorPointer(3, GL_FLOAT, 0, None)  # Указание формата цветов
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, edge_buffer)  # Привязка буфера индексов
+    #Рендер линий
     glDrawElements(GL_LINES, len(edges) * 2, GL_UNSIGNED_INT, None)  # Рендеринг линий
+
 
     # Освобождение буферов
     glBindBuffer(GL_ARRAY_BUFFER, 0)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+
     glDeleteBuffers(1, [vertex_buffer])
     glDeleteBuffers(1, [color_buffer])
     glDeleteBuffers(1, [edge_buffer])
