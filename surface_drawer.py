@@ -187,5 +187,5 @@ def main_program(matrix):
 
 
 if __name__ == "__main__":
-    matrix = load_fdf_file('test_maps/van-gogh.fdf')
+    matrix = load_fdf_file('maps/42.fdf')
     main_program(matrix)  # Запуск основной программы
