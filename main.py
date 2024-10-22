@@ -11,72 +11,77 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QMessageBox,
 )
-
 import map_generator
+import surface_drawer
 
 
 class MainWindow(QMainWindow):
+
     def __init__(self):
         super().__init__()
-
-        self.setWindowTitle("File Loader")
-        self.setGeometry(100, 100, 800, 400)
-
-        # Основной виджет
-        self.central_widget = QWidget(self)
-        self.setCentralWidget(self.central_widget)
-
-        # В layout для главного окна (горизонтальный)
-        self.layout = QHBoxLayout(self.central_widget)
-
-        # Левая часть
-        self.left_widget = QWidget(self)
-        self.left_layout = QVBoxLayout(self.left_widget)
-
-        self.load_button = QPushButton("Загрузить файл", self)
-        self.load_button.clicked.connect(self.load_file)
-        self.left_layout.addWidget(self.load_button)
-
-        self.layout.addWidget(self.left_widget)
-
-        # Правая часть
-        self.right_widget = QWidget(self)
-        self.right_layout = QVBoxLayout(self.right_widget)
-
-        self.file_list = QListWidget(self)
-        self.right_layout.addWidget(self.file_list)
-
-        self.open_button = QPushButton("Открыть", self)
-        self.open_button.clicked.connect(self.open_file)
-        self.right_layout.addWidget(self.open_button)
-
-        self.layout.addWidget(self.right_widget)
-
+        self.folder_path = "test_maps"
+        self.init_ui()
         self.load_files()
 
-    def load_file(self):
-        # Открытие диалогового окна для выбора изображения
-        print("Loading file...")
+    def init_ui(self):
+        self.setWindowTitle("Map selection")
+        self.setGeometry(100, 100, 800, 400)
 
-        fname = QFileDialog.getOpenFileName(self, 'Открыть файл','c:\\', "Изображения (*.jpg *.png)")
-        map_generator.main(fname[0])
+        # Основной виджет и компоновка
+        central_widget = QWidget(self)
+        self.setCentralWidget(central_widget)
+        layout = QHBoxLayout(central_widget)
+
+        # Левая панель: кнопка для загрузки файла
+        left_layout = QVBoxLayout()
+        self.create_button("Загрузить файл", self.load_file, left_layout)
+        layout.addLayout(left_layout)
+
+        # Правая панель: список файлов и кнопка открытия
+        right_layout = QVBoxLayout()
+        self.file_list = QListWidget(self)
+        right_layout.addWidget(self.file_list)
+        self.create_button("Открыть", self.open_file, right_layout)
+        layout.addLayout(right_layout)
+
+    def create_button(self, text, callback, layout):
+        """Создание кнопки с привязкой к обработчику."""
+        button = QPushButton(text, self)
+        button.clicked.connect(callback)
+        layout.addWidget(button)
+
+    def load_file(self):
+        """Открытие диалогового окна для выбора изображения и обработка файла."""
+        fname, _ = QFileDialog.getOpenFileName (self, 'Открыть файл', '', "Изображения (*.jpg *.png *.jpeg)")
+
+        if fname:
+            try:
+                fdf_path = map_generator.main(fname)
+                surface_drawer.main_program(surface_drawer.load_fdf_file(fdf_path))
+            except Exception as e:
+                QMessageBox.critical(self, "Ошибка", f"Не удалось обработать файл: {e}")
 
     def load_files(self):
-        # Загрузка файлов из папки test_maps
-        folder_path = "test_maps"
-        if os.path.exists(folder_path):
-            files = os.listdir(folder_path)
+        """Загрузка файлов из папки."""
+        if not os.path.exists(self.folder_path):
+            QMessageBox.warning(self, "Ошибка", f"Папка {self.folder_path} не найдена.")
+            return
+
+        files = sorted(os.listdir(self.folder_path))
+        if files:
             self.file_list.addItems(files)
         else:
-            QMessageBox.warning(self, "Ошибка", f"Папка {folder_path} не найдена.")
+            QMessageBox.information(self, "Информация", "Папка пуста.")
 
     def open_file(self):
-        # Открытие выбранного файла
+        """Открытие выбранного файла из списка."""
         selected_item = self.file_list.currentItem()
         if selected_item:
-            file_name = selected_item.text()
-
-            QMessageBox.information(self, "Открыть файл", f"Файл: {file_name}")
+            file_name = os.path.join(self.folder_path, selected_item.text())
+            try:
+                surface_drawer.main_program(surface_drawer.load_fdf_file(file_name))
+            except Exception as e:
+                QMessageBox.critical(self, "Ошибка", f"Не удалось открыть файл: {e}")
         else:
             QMessageBox.warning(self, "Ошибка", "Выберите файл для открытия.")
 

@@ -5,27 +5,23 @@ import numpy as np
 import sys
 
 
-def get_image_path():
-    try:
-        while True:
-            try:
-                image_path = str(input('Enter the image path: '))
-                image = Image.open(image_path)
-            except (FileNotFoundError, UnidentifiedImageError):
-                print('\033[31mInvalid Image Path, Please Try Again!!\033[m')
-                continue
-            else:
-                break
-    except (KeyboardInterrupt):
-        print('\033[33m\n\nKeyboardInterrupt: Program terminated by the user.\033[m')
-        sys.exit()
-    return image_path, image
+def get_image(path):
+    while True:
+        try:
+            image = Image.open(path)
+            break
+        except FileNotFoundError:
+            print('\033[31mFile not found. Please enter a valid image path!\033[m')
+        except UnidentifiedImageError:
+            print('\033[31mInvalid image format. Please select a valid image file!\033[m')
+        except (KeyboardInterrupt):
+            print('\033[33m\n\nKeyboardInterrupt: Program terminated by the user.\033[m')
+            sys.exit()
+    return image
 
 
 def parse_without_color(image):
     image_matrix = np.array(image)
-
-    # Векторизуем вычисление высоты и цветов
     grayscale_values = np.mean(image_matrix, axis=2).astype(int)  # усредняем по каналам RGB
     relief_map = []
 
@@ -47,8 +43,8 @@ def change_extension(file_path, new_extension):
     return f"{base}.{new_extension}"
 
 
-def main():
-    image_path, image = get_image_path()
+def main(path):
+    image = get_image(path)
 
     image_matrix = np.array(image)
     use_default_color = False
@@ -73,12 +69,10 @@ def main():
     if use_default_color:
         relief_map = parse_without_color(image)
 
-    fdf_path = change_extension(image_path, 'fdf')
+    # Сохранение карты рельефа
+    fdf_path = change_extension(path, 'fdf')
     with open(fdf_path, 'w') as file:
         file.writelines(" ".join(row) + '\n' for row in relief_map)
 
     print(f"\033[32m\nThe map '{fdf_path}' was created successfully!!\033[m")
-
-
-if __name__ == '__main__':
-    main()
+    return fdf_path
