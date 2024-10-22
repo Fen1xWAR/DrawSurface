@@ -1,11 +1,12 @@
 import os
 from PIL import Image, UnidentifiedImageError
-from math import log
 import numpy as np
 import sys
 
 
 def get_image(path):
+    """ Загрузка файла изображения """
+
     while True:
         try:
             image = Image.open(path)
@@ -21,6 +22,7 @@ def get_image(path):
 
 
 def parse_without_color(image):
+    """ Парсинг чб изображения"""
     image_matrix = np.array(image)
     grayscale_values = np.mean(image_matrix, axis=2).astype(int)  # усредняем по каналам RGB
     relief_map = []
@@ -39,6 +41,7 @@ def parse_without_color(image):
 
 
 def change_extension(file_path, new_extension):
+    """Создание пути для исходящего fdf"""
     base = os.path.splitext(os.path.basename(file_path))[0]
     return f"{base}.{new_extension}"
 
@@ -67,7 +70,7 @@ def main(path):
         use_default_color = True
 
     if use_default_color:
-        relief_map = parse_without_color(image)
+        relief_map = parse_without_color(image) # Обработка чб
 
     # Сохранение карты рельефа
     fdf_path = change_extension(path, 'fdf')

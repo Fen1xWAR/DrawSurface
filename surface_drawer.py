@@ -6,14 +6,14 @@ from OpenGL.GLU import *
 
 
 def load_fdf_file(filename: str):
-    """Загрузить файл .fdf и вернуть numpy массив с высотами и цветами."""
+    """Загрузка fdf файла"""
     try:
         with open(filename, 'rb') as file:
             content = file.read().decode('utf-8-sig')  # Чтение и удаление BOM
     except Exception as e:
         raise FileNotFoundError(f"Не удалось прочитать файл: {e}")
 
-    lines = content.strip().splitlines()  # Разделить содержимое файла на строки
+    lines = content.strip().splitlines()
     matrix = []  # Инициализация списка для хранения высот и цветов
 
     for line in lines:
@@ -25,7 +25,7 @@ def load_fdf_file(filename: str):
                 color = color.strip()  # Удаление пробелов вокруг цвета
                 row.append(np.array([height, color], dtype=object))  # Добавление списка (высота, цвет) в строку
             else:  # Если элемент содержит только высоту
-                row.append(float(item.strip()))  # Преобразование высоты в float
+                row.append(float(item.strip()))
         matrix.append(row)  # Добавление строки в матрицу
 
     if len(set(map(len, matrix))) != 1:
@@ -35,7 +35,7 @@ def load_fdf_file(filename: str):
 
 
 def convert_hex_to_rgb(hex_color):
-    """Преобразовать шестнадцатеричный цвет в RGB кортеж."""
+    """Конвертация 0x цвета в RGB кортеж."""
     hex_color = hex_color.lower().replace('0x', '')  # Приведение к нижнему регистру и удаление '0x'
 
     r = int(hex_color[0:2] or '0', 16)  # Извлечение значения красного цвета
@@ -46,7 +46,7 @@ def convert_hex_to_rgb(hex_color):
 
 
 def create_vertices_and_colors(matrix, scale_z):
-    """Сгенерировать вершины и цвета на основе матрицы высот."""
+    """Генерация вершин и цветов на основе матрицы высот."""
     rows, cols = matrix.shape[0], matrix.shape[1]  # Получение размеров матрицы
     vertices = []  # Инициализация списка для вершин
     colors = []  # Инициализация списка для цветов
@@ -70,8 +70,8 @@ def create_vertices_and_colors(matrix, scale_z):
 
 
 def create_edges(rows, cols):
-    """Сгенерировать рёбра для сетки."""
-    edges = []  # Инициализация списка для рёбер
+    """Генерация рёбер для сетки."""
+    edges = []  # Инициализация списка рёбер
     for i in range(rows):
         for j in range(cols - 1):
             edges.append((i * cols + j, i * cols + j + 1))  # Горизонтальные рёбра
@@ -113,7 +113,7 @@ def draw_plane(vertices, colors, edges):
 
 
 def main_program(matrix):
-    """Основная программа для инициализации pygame и OpenGL и запуска цикла рендеринга."""
+    """Основная функция для инициализации pygame и OpenGL и запуска цикла рендеринга."""
     pygame.init()  # Инициализация pygame
     display = (800, 600)  # Размер окна
     pygame.display.set_caption('Surface Drawer')
@@ -141,21 +141,21 @@ def main_program(matrix):
     running = True  # Флаг для работы основного цикла рендеринга
 
     while running:
-        for event in pygame.event.get():
+        for event in pygame.event.get(): # Цикл событий внутри окна рендер
             if event.type == pygame.QUIT:
-                running = False  # Установка флага для завершения рендер-цикла
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: #Нажатие ЛКМ
                 mouse_down = True
                 last_pos = pygame.mouse.get_pos()
-            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:  #Отжатие ЛКМ
                 mouse_down = False
-            elif event.type == pygame.MOUSEMOTION and mouse_down:
+            elif event.type == pygame.MOUSEMOTION and mouse_down: # Движение с зажатой ЛКМ
                 current_pos = pygame.mouse.get_pos()
                 dx, dy = current_pos[0] - last_pos[0], current_pos[1] - last_pos[1]
                 rot_x += dy * 0.5
                 rot_y += dx * 0.5
                 last_pos = current_pos
-            elif event.type == pygame.MOUSEWHEEL:
+            elif event.type == pygame.MOUSEWHEEL: #Колесо
                 zoom += event.y * 0.1
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -172,7 +172,4 @@ def main_program(matrix):
         pygame.display.flip()
         pygame.time.wait(10)
 
-    # Закрытие окна без завершения работы всего приложения
     pygame.display.quit()  # Закрытие окна рендеринга
-
-# Вызов main_program(matrix) не завершит программу, только закроет окно.
