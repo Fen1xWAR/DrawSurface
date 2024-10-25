@@ -1,12 +1,13 @@
-﻿import numpy as np
+﻿"""Основной файл реализующий отрисовку карту высот."""
+import numpy as np
 import pygame
-from pygame.locals import *
-from OpenGL.GL import *
-from OpenGL.GLU import *
+import pygame.locals
+import OpenGL.GL
+import OpenGL.GLU
 
 
 def load_fdf_file(filename: str):
-    """Загрузка fdf файла"""
+    """Загрузка fdf файла."""
     try:
         with open(filename, 'rb') as file:
             content = file.read().decode('utf-8-sig')  # Чтение и удаление BOM
@@ -23,21 +24,23 @@ def load_fdf_file(filename: str):
                 height, color = item.split(',')
                 height = float(height.strip())  # Преобразование высоты в float
                 color = color.strip()  # Удаление пробелов вокруг цвета
-                row.append(np.array([height, color], dtype=object))  # Добавление списка (высота, цвет) в строку
+                # Добавление списка (высота, цвет) в строку
+                row.append(np.array([height, color], dtype=object))
             else:  # Если элемент содержит только высоту
                 row.append(float(item.strip()))
         matrix.append(row)  # Добавление строки в матрицу
 
     if len(set(map(len, matrix))) != 1:
-        raise ValueError("Все строки во входных данных должны иметь одинаковую длину.")
-
-    return np.array(matrix, dtype=object)  # Возврат матрицы в виде numpy массива
+        raise (ValueError
+               ("Все строки во входных данных должны иметь одинаковую длину."))
+    # Возврат матрицы в виде numpy массива
+    return np.array(matrix, dtype=object)
 
 
 def convert_hex_to_rgb(hex_color):
     """Конвертация 0x цвета в RGB кортеж."""
-    hex_color = hex_color.lower().replace('0x', '')  # Приведение к нижнему регистру и удаление '0x'
-
+    # Приведение к нижнему регистру и удаление '0x'
+    hex_color = hex_color.lower().replace('0x', '')
     r = int(hex_color[0:2] or '0', 16)  # Извлечение значения красного цвета
     g = int(hex_color[2:4] or '0', 16)  # Извлечение значения зеленого цвета
     b = int(hex_color[4:6] or '0', 16)  # Извлечение значения синего цвета
@@ -50,13 +53,15 @@ def create_vertices_and_colors(matrix, scale_z):
     rows, cols = matrix.shape[0], matrix.shape[1]  # Получение размеров матрицы
     vertices = []  # Инициализация списка для вершин
     colors = []  # Инициализация списка для цветов
-    step = 2 / (max(rows, cols) - 1)  # Вычисление шага для распределения вершин
+    # Вычисление шага для распределения вершин
+    step = 2 / (max(rows, cols) - 1)
 
     for i in range(rows):
         for j in range(cols):
             x = -1 + j * step  # Вычисление координаты x
             y = 1 - i * step  # Вычисление координаты y
-            if isinstance(matrix[i, j], np.ndarray):  # Если элемент - список (высота, цвет)
+            # Если элемент - список (высота, цвет)
+            if isinstance(matrix[i, j], np.ndarray):
                 height, color = matrix[i, j]  # Извлечение высоты и цвета
                 height = height * scale_z  # Масштабирование высоты
                 color = convert_hex_to_rgb(color)  # Преобразование цвета в RGB
@@ -66,7 +71,9 @@ def create_vertices_and_colors(matrix, scale_z):
 
             vertices.append((x, y, height))  # Добавление вершины в список
             colors.append(color)  # Добавление цвета в список
-    return np.array(vertices, dtype='float32'), np.array(colors, dtype='float32')  # Возврат массивов вершин и цветов
+    # Возврат массивов вершин и цветов
+    return (np.array(vertices, dtype='float32'),
+            np.array(colors, dtype='float32'))
 
 
 def create_edges(rows, cols):
@@ -74,64 +81,88 @@ def create_edges(rows, cols):
     edges = []  # Инициализация списка рёбер
     for i in range(rows):
         for j in range(cols - 1):
-            edges.append((i * cols + j, i * cols + j + 1))  # Горизонтальные рёбра
+            # Горизонтальные рёбра
+            edges.append((i * cols + j, i * cols + j + 1))
 
     for j in range(cols):
         for i in range(rows - 1):
-            edges.append((i * cols + j, (i + 1) * cols + j))  # Вертикальные рёбра
+            # Вертикальные рёбра
+            edges.append((i * cols + j, (i + 1) * cols + j))
     return np.array(edges, dtype='uint32')  # Возврат массива рёбер
 
 
 def draw_plane(vertices, colors, edges):
     """Рисуем 3D плоскость с использованием OpenGL."""
+    vertex_buffer = OpenGL.GL.glGenBuffers(1)  # Создание буфера для вершин
+    color_buffer = OpenGL.GL.glGenBuffers(1)  # Создание буфера для цветов
+    edge_buffer = OpenGL.GL.glGenBuffers(1)  # Создание буфера для ребер
 
-    vertex_buffer = glGenBuffers(1)  # Создание буфера для вершин
-    color_buffer = glGenBuffers(1)  # Создание буфера для цветов
-    edge_buffer = glGenBuffers(1)  # Создание буфера для ребер
+    # Привязка буфера вершин
+    OpenGL.GL.glBindBuffer(OpenGL.GL.GL_ARRAY_BUFFER, vertex_buffer)
+    # Указание формата вершин
+    OpenGL.GL.glVertexPointer(3, OpenGL.GL.GL_FLOAT, 0, None)
+    # Заполнение буфера вершин
+    OpenGL.GL.glBufferData(OpenGL.GL.GL_ARRAY_BUFFER, vertices.nbytes,
+                           vertices, OpenGL.GL.GL_STATIC_DRAW)
+    # Включение состояния массива вершин
+    OpenGL.GL.glEnableClientState(OpenGL.GL.GL_VERTEX_ARRAY)
 
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer)  # Привязка буфера вершин
-    glVertexPointer(3, GL_FLOAT, 0, None)  # Указание формата вершин
-    glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)  # Заполнение буфера вершин
-    glEnableClientState(GL_VERTEX_ARRAY)  # Включение состояния массива вершин
+    # Привязка буфера цветов
+    OpenGL.GL.glBindBuffer(OpenGL.GL.GL_ARRAY_BUFFER, color_buffer)
+    # Указание формата цветов
+    OpenGL.GL.glColorPointer(3, OpenGL.GL.GL_FLOAT, 0, None)
+    # Заполнение буфера цветов
+    OpenGL.GL.glBufferData(OpenGL.GL.GL_ARRAY_BUFFER,
+                           colors.nbytes, colors, OpenGL.GL.GL_STATIC_DRAW)
+    # Включение состояния массива цветов
+    OpenGL.GL.glEnableClientState(OpenGL.GL.GL_COLOR_ARRAY)
 
-    glBindBuffer(GL_ARRAY_BUFFER, color_buffer)  # Привязка буфера цветов
-    glColorPointer(3, GL_FLOAT, 0, None)  # Указание формата цветов
-    glBufferData(GL_ARRAY_BUFFER, colors.nbytes, colors, GL_STATIC_DRAW)  # Заполнение буфера цветов
-    glEnableClientState(GL_COLOR_ARRAY)  # Включение состояния массива цветов
+    # Привязка буфера ребер
+    OpenGL.GL.glBindBuffer(OpenGL.GL.GL_ELEMENT_ARRAY_BUFFER, edge_buffer)
+    # Заполнение буфера ребер
+    OpenGL.GL.glBufferData(OpenGL.GL.GL_ELEMENT_ARRAY_BUFFER,
+                           edges.nbytes, edges, OpenGL.GL.GL_STATIC_DRAW)
+    # Рендеринг линий
+    OpenGL.GL.glDrawElements(OpenGL.GL.GL_LINES, len(edges) * 2,
+                             OpenGL.GL.GL_UNSIGNED_INT, None)
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, edge_buffer)  # Привязка буфера ребер
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, edges.nbytes, edges, GL_STATIC_DRAW)  # Заполнение буфера ребер
+    OpenGL.GL.glBindBuffer(OpenGL.GL.GL_ARRAY_BUFFER, 0)
+    OpenGL.GL.glBindBuffer(OpenGL.GL.GL_ELEMENT_ARRAY_BUFFER, 0)
 
-    glDrawElements(GL_LINES, len(edges) * 2, GL_UNSIGNED_INT, None)  # Рендеринг линий
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0)
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
-
-    glDeleteBuffers(1, [vertex_buffer])
-    glDeleteBuffers(1, [color_buffer])
-    glDeleteBuffers(1, [edge_buffer])
+    OpenGL.GL.glDeleteBuffers(1, [vertex_buffer])
+    OpenGL.GL.glDeleteBuffers(1, [color_buffer])
+    OpenGL.GL.glDeleteBuffers(1, [edge_buffer])
 
 
 def main_program(matrix):
-    """Основная функция для инициализации pygame и OpenGL и запуска цикла рендеринга."""
+    """Основная функция отрисовки."""
     pygame.init()  # Инициализация pygame
     display = (800, 600)  # Размер окна
     pygame.display.set_caption('Surface Drawer')
-    pygame.display.set_mode(display, DOUBLEBUF | OPENGL | GL_DEPTH_BUFFER)  # Установка режима отображения
-    gluPerspective(45, (display[0] / display[1]), 0.1, 100.0)  # Установка перспективной проекции
-    glEnable(GL_DEPTH_TEST)  # Включение теста глубины
+    # Установка режима отображения
+    (pygame.display.set_mode
+     (display, pygame.DOUBLEBUF | pygame.OPENGL | OpenGL.GL.GL_DEPTH_BUFFER))
+    # Установка перспективной проекции
+    OpenGL.GLU.gluPerspective(45, (display[0] / display[1]), 0.1, 100.0)
+    # Включение теста глубины
+    OpenGL.GL.glEnable(OpenGL.GL.GL_DEPTH_TEST)
 
-    glTranslatef(0.0, 0.0, -10)  # Перемещение по оси Z
+    OpenGL.GL.glTranslatef(0.0, 0.0, -10)  # Перемещение по оси Z
 
-    heights = [el[0] if isinstance(el, np.ndarray) else el for row in matrix for el in row]
+    heights = [el[0] if isinstance(el, np.ndarray)
+               else el for row in matrix for el in row]
     min_height = min(heights)  # Минимальная высота
     max_height = max(heights)  # Максимальная высота
 
-    height_range = max_height - min_height  # Разница между максимальной и минимальной высотой
-    scale_z = 0.5 / height_range if height_range != 0 else 1.0  # Масштабирование по высоте
+    # Разница между максимальной и минимальной высотой
+    height_range = max_height - min_height
+    # Масштабирование по высоте
+    scale_z = 0.5 / height_range if height_range != 0 else 1.0
 
-    vertices, colors = create_vertices_and_colors(matrix, scale_z)  # Создание вершин и цветов
-    edges = create_edges(matrix.shape[0], matrix.shape[1])  # Создание рёбер
+    # Создание вершин и цветов
+    vertices, colors = create_vertices_and_colors(matrix, scale_z)
+    # Создание рёбер
+    edges = create_edges(matrix.shape[0], matrix.shape[1])
 
     rot_x, rot_y = 0, 0  # Начальные углы поворота
     zoom = 5  # Начальное значение зума
@@ -141,33 +172,39 @@ def main_program(matrix):
     running = True  # Флаг для работы основного цикла рендеринга
 
     while running:
-        for event in pygame.event.get(): # Цикл событий внутри окна рендер
+        for event in pygame.event.get():  # Цикл событий внутри окна рендер
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: #Нажатие ЛКМ
+            # Нажатие ЛКМ
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_down = True
                 last_pos = pygame.mouse.get_pos()
-            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:  #Отжатие ЛКМ
+            # Отжатие ЛКМ
+            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 mouse_down = False
-            elif event.type == pygame.MOUSEMOTION and mouse_down: # Движение с зажатой ЛКМ
+            # Движение с зажатой ЛКМ
+            elif event.type == pygame.MOUSEMOTION and mouse_down:
                 current_pos = pygame.mouse.get_pos()
-                dx, dy = current_pos[0] - last_pos[0], current_pos[1] - last_pos[1]
+                dx, dy = (current_pos[0] - last_pos[0],
+                          current_pos[1] - last_pos[1])
                 rot_x += dy * 0.5
                 rot_y += dx * 0.5
                 last_pos = current_pos
-            elif event.type == pygame.MOUSEWHEEL: #Колесо
+            # Реакция на колесико мышки
+            elif event.type == pygame.MOUSEWHEEL:
                 zoom += event.y * 0.1
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        OpenGL.GL.glClear(OpenGL.GL.GL_COLOR_BUFFER_BIT |
+                          OpenGL.GL.GL_DEPTH_BUFFER_BIT)
 
-        glPushMatrix()
-        glTranslatef(0.0, 0.0, zoom)
-        glRotatef(rot_x, 1, 0, 0)
-        glRotatef(rot_y, 0, 1, 0)
+        OpenGL.GL.glPushMatrix()
+        OpenGL.GL.glTranslatef(0.0, 0.0, zoom)
+        OpenGL.GL.glRotatef(rot_x, 1, 0, 0)
+        OpenGL.GL.glRotatef(rot_y, 0, 1, 0)
 
         draw_plane(vertices, colors, edges)
 
-        glPopMatrix()
+        OpenGL.GL.glPopMatrix()
 
         pygame.display.flip()
         pygame.time.wait(10)
